@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "motion",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/stateman92/Motion",
+      "state" : {
+        "revision" : "670c2bea1ec20ec80d98c7c03da118de32bae149",
+        "version" : "0.0.1"
+      }
+    }
+  ],
+  "version" : 2
+}
