@@ -1,6 +1,6 @@
 //
 //  CMAcceleration+Extensions.swift
-//  
+//
 //
 //  Created by Kristof Kalai on 2023. 03. 12..
 //
@@ -10,12 +10,12 @@ import UIKit
 
 extension CMAcceleration {
     func orientation(with sensitivity: Float) -> UIDeviceOrientation {
-        let isNearValue = { value1, value2 in
-            fabsf(value1 - value2) < sensitivity
+        let isNearValue = {
+            fabsf($0 - $1) < sensitivity
         }
 
-        let isNearValueABS = { value1, value2 in
-            isNearValue(fabsf(value1), fabsf(value2))
+        let isNearValueABS = {
+            isNearValue(fabsf($0), fabsf($1))
         }
 
         func calcTan(first: Double, second: Double) -> Float {
@@ -26,24 +26,20 @@ extension CMAcceleration {
         let zyAtan = calcTan(first: z, second: y)
         let zxAtan = calcTan(first: z, second: x)
 
-        let orientation: UIDeviceOrientation = {
-            if isNearValue(-90, yxAtan), isNearValueABS(180, zyAtan) {
-                return .portrait
-            } else if isNearValueABS(180, yxAtan), isNearValueABS(180, zxAtan) {
-                return .landscapeLeft
-            } else if isNearValueABS(.zero, yxAtan), isNearValueABS(.zero, zxAtan) {
-                return .landscapeRight
-            } else if isNearValue(90, yxAtan), isNearValueABS(.zero, zyAtan) {
-                return .portraitUpsideDown
-            } else if isNearValue(-90, zyAtan), isNearValue(-90, zxAtan) {
-                return .faceUp
-            } else if isNearValue(90, zyAtan), isNearValue(90, zxAtan) {
-                return .faceDown
-            } else {
-                return .unknown
-            }
-        }()
-
-        return orientation
+        return if isNearValue(-90, yxAtan), isNearValueABS(180, zyAtan) {
+            .portrait
+        } else if isNearValueABS(180, yxAtan), isNearValueABS(180, zxAtan) {
+            .landscapeLeft
+        } else if isNearValueABS(.zero, yxAtan), isNearValueABS(.zero, zxAtan) {
+            .landscapeRight
+        } else if isNearValue(90, yxAtan), isNearValueABS(.zero, zyAtan) {
+            .portraitUpsideDown
+        } else if isNearValue(-90, zyAtan), isNearValue(-90, zxAtan) {
+            .faceUp
+        } else if isNearValue(90, zyAtan), isNearValue(90, zxAtan) {
+            .faceDown
+        } else {
+            .unknown
+        }
     }
 }

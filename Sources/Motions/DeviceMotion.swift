@@ -1,17 +1,14 @@
 //
 //  DeviceMotion.swift
-//  
+//
 //
 //  Created by Kristof Kalai on 2023. 03. 12..
 //
 
 import CoreMotion
 
-public final class DeviceMotion: BaseMotion<DeviceMotion.DeviceMotionInput, DeviceMotion.DeviceMotionOutput> {
-    public typealias Input = DeviceMotionInput
-    public typealias Output = DeviceMotionOutput
-
-    public struct DeviceMotionInput: MotionInput {
+public final class DeviceMotion: BaseMotion<DeviceMotion.Input, DeviceMotion.Output> {
+    public struct Input: MotionInput {
         public let sensitivity: Float
         public let timeInterval: TimeInterval
         public let operationQueue: OperationQueue
@@ -19,8 +16,8 @@ public final class DeviceMotion: BaseMotion<DeviceMotion.DeviceMotionInput, Devi
 
         public init(sensitivity: Float = 40,
                     attitudeReferenceFrame: CMAttitudeReferenceFrame = .init(),
-                    timeInterval: TimeInterval = DeviceMotion.defaultTimeInterval,
-                    operationQueue: OperationQueue = DeviceMotion.defaultOperationQueue) {
+                    timeInterval: TimeInterval = defaultTimeInterval,
+                    operationQueue: OperationQueue = defaultOperationQueue) {
             self.sensitivity = sensitivity
             self.attitudeReferenceFrame = attitudeReferenceFrame
             self.timeInterval = timeInterval
@@ -32,14 +29,14 @@ public final class DeviceMotion: BaseMotion<DeviceMotion.DeviceMotionInput, Devi
         }
     }
 
-    public struct DeviceMotionOutput {
+    public struct Output {
         public let timestamp: TimeInterval
         public let attitude: CMAttitude
 
-        public let rotationRate: Gyroscope.GyroscopeOutput
-        public let gravity: Accelerometer.AccelerometerOutput
-        public let userAcceleration: Accelerometer.AccelerometerOutput
-        public let magneticField: Magnetometer.MagnetometerOutput
+        public let rotationRate: Gyroscope.Output
+        public let gravity: Accelerometer.Output
+        public let userAcceleration: Accelerometer.Output
+        public let magneticField: Magnetometer.Output
         public let magneticFieldAccuracy: CMMagneticFieldCalibrationAccuracy
 
         public let heading: Double
@@ -61,6 +58,22 @@ public final class DeviceMotion: BaseMotion<DeviceMotion.DeviceMotionInput, Devi
             self.sensorLocation = deviceMotion._sensorLocation
         }
     }
+
+    public override func start(input _input: Input? = nil, completion: @escaping (_ output: Output) -> Void) {
+        super.start(input: _input, completion: completion)
+        motionManager.deviceMotionUpdateInterval = input.timeInterval
+        motionManager.startDeviceMotionUpdates(using: input.attitudeReferenceFrame, to: input.operationQueue) { [weak self] value, _ in
+            guard let self, let value else { return }
+            let output = output(from: value)
+            completion(output)
+            subject.send(output)
+        }
+    }
+
+    public override func stop() {
+        super.stop()
+        motionManager.stopDeviceMotionUpdates()
+    }
 }
 
 extension DeviceMotion: Motion {
@@ -73,26 +86,12 @@ extension DeviceMotion: Motion {
     }
 
     public var lastSample: Output? {
-        motionManager.deviceMotion.map { .init(from: $0, sensitivity: input.sensitivity) }
+        motionManager.deviceMotion.map(output)
     }
+}
 
-    public func start(input: Input? = nil, completion: @escaping (_ output: Output) -> Void) {
-        stop()
-        if let input {
-            self.input = input
-        }
-        motionManager.deviceMotionUpdateInterval = self.input.timeInterval
-        motionManager.startDeviceMotionUpdates(using: self.input.attitudeReferenceFrame,
-                                               to: self.input.operationQueue) { [weak self] deviceMotion, _ in
-            guard let self, let deviceMotion else { return }
-            let output = Output(from: deviceMotion, sensitivity: self.input.sensitivity)
-            completion(output)
-            self.subject.send(output)
-
-        }
-    }
-
-    public func stop() {
-        motionManager.stopDeviceMotionUpdates()
+extension DeviceMotion {
+    private func output(from value: CMDeviceMotion) -> Output {
+        .init(from: value, sensitivity: input.sensitivity)
     }
 }

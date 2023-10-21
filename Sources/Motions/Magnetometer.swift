@@ -1,22 +1,19 @@
 //
 //  Magnetometer.swift
-//  
+//
 //
 //  Created by Kristof Kalai on 2023. 03. 12..
 //
 
 import CoreMotion
 
-public final class Magnetometer: BaseMotion<Magnetometer.MagnetometerInput, Magnetometer.MagnetometerOutput> {
-    public typealias Input = MagnetometerInput
-    public typealias Output = MagnetometerOutput
-
-    public struct MagnetometerInput: MotionInput {
+public final class Magnetometer: BaseMotion<Magnetometer.Input, Magnetometer.Output> {
+    public struct Input: MotionInput {
         public let timeInterval: TimeInterval
         public let operationQueue: OperationQueue
 
-        public init(timeInterval: TimeInterval = Magnetometer.defaultTimeInterval,
-                    operationQueue: OperationQueue = Magnetometer.defaultOperationQueue) {
+        public init(timeInterval: TimeInterval = defaultTimeInterval,
+                    operationQueue: OperationQueue = defaultOperationQueue) {
             self.timeInterval = timeInterval
             self.operationQueue = operationQueue
         }
@@ -26,7 +23,7 @@ public final class Magnetometer: BaseMotion<Magnetometer.MagnetometerInput, Magn
         }
     }
 
-    public struct MagnetometerOutput: MotionOutput {
+    public struct Output: MotionOutput {
         public let timestamp: TimeInterval
         public let x: Double // in microtesla
         public let y: Double // in microtesla
@@ -43,6 +40,22 @@ public final class Magnetometer: BaseMotion<Magnetometer.MagnetometerInput, Magn
             self.init(from: magnetometerData.magneticField, timestamp: magnetometerData.timestamp)
         }
     }
+
+    public override func start(input _input: Input? = nil, completion: @escaping (_ output: Output) -> Void) {
+        super.start(input: _input, completion: completion)
+        motionManager.magnetometerUpdateInterval = input.timeInterval
+        motionManager.startMagnetometerUpdates(to: input.operationQueue) { [weak self] value, _ in
+            guard let self, let value else { return }
+            let output = output(from: value)
+            completion(output)
+            subject.send(output)
+        }
+    }
+
+    public override func stop() {
+        super.stop()
+        motionManager.stopMagnetometerUpdates()
+    }
 }
 
 extension Magnetometer: Motion {
@@ -55,25 +68,12 @@ extension Magnetometer: Motion {
     }
 
     public var lastSample: Output? {
-        motionManager.magnetometerData.map { .init(from: $0) }
+        motionManager.magnetometerData.map(output)
     }
+}
 
-    public func start(input: Input? = nil, completion: @escaping (_ output: Output) -> Void) {
-        stop()
-        if let input {
-            self.input = input
-        }
-        motionManager.magnetometerUpdateInterval = self.input.timeInterval
-        motionManager.startMagnetometerUpdates(to: self.input.operationQueue) { [weak self] value, _ in
-            guard let value else { return }
-            let output = Output(from: value)
-            completion(output)
-            guard let self else { return }
-            self.subject.send(output)
-        }
-    }
-
-    public func stop() {
-        motionManager.stopMagnetometerUpdates()
+extension Magnetometer {
+    private func output(from value: CMMagnetometerData) -> Output {
+        .init(from: value)
     }
 }

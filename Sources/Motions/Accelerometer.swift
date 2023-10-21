@@ -1,6 +1,6 @@
 //
 //  Accelerometer.swift
-//  
+//
 //
 //  Created by Kristof Kalai on 2023. 03. 12..
 //
@@ -9,17 +9,14 @@ import CoreMotion
 import UIKit
 
 public final class Accelerometer: BaseMotion<Accelerometer.Input, Accelerometer.Output> {
-    public typealias Input = AccelerometerInput
-    public typealias Output = AccelerometerOutput
-
-    public struct AccelerometerInput: MotionInput {
+    public struct Input: MotionInput {
         public let sensitivity: Float
         public let timeInterval: TimeInterval
         public let operationQueue: OperationQueue
 
         public init(sensitivity: Float = 40,
-                    timeInterval: TimeInterval = Accelerometer.defaultTimeInterval,
-                    operationQueue: OperationQueue = Accelerometer.defaultOperationQueue) {
+                    timeInterval: TimeInterval = defaultTimeInterval,
+                    operationQueue: OperationQueue = defaultOperationQueue) {
             self.sensitivity = sensitivity
             self.timeInterval = timeInterval
             self.operationQueue = operationQueue
@@ -30,7 +27,7 @@ public final class Accelerometer: BaseMotion<Accelerometer.Input, Accelerometer.
         }
     }
 
-    public struct AccelerometerOutput: MotionOutput {
+    public struct Output: MotionOutput {
         public let timestamp: TimeInterval
         public let x: Double // in G
         public let y: Double // in G
@@ -50,6 +47,22 @@ public final class Accelerometer: BaseMotion<Accelerometer.Input, Accelerometer.
             self.init(from: accelerometerData.acceleration, sensitivity: sensitivity, timestamp: accelerometerData.timestamp)
         }
     }
+
+    public override func start(input: Input? = nil, completion: @escaping (_ output: Output) -> Void) {
+        super.start(input: input, completion: completion)
+        motionManager.accelerometerUpdateInterval = self.input.timeInterval
+        motionManager.startAccelerometerUpdates(to: self.input.operationQueue) { [weak self] value, _ in
+            guard let self, let value else { return }
+            let output = output(from: value)
+            completion(output)
+            subject.send(output)
+        }
+    }
+
+    public override func stop() {
+        super.stop()
+        motionManager.stopAccelerometerUpdates()
+    }
 }
 
 extension Accelerometer: Motion {
@@ -62,24 +75,12 @@ extension Accelerometer: Motion {
     }
 
     public var lastSample: Output? {
-        motionManager.accelerometerData.map { .init(from: $0, sensitivity: input.sensitivity) }
+        motionManager.accelerometerData.map(output)
     }
+}
 
-    public func start(input: Input? = nil, completion: @escaping (_ output: Output) -> Void) {
-        stop()
-        if let input {
-            self.input = input
-        }
-        motionManager.accelerometerUpdateInterval = self.input.timeInterval
-        motionManager.startAccelerometerUpdates(to: self.input.operationQueue) { [weak self] value, _ in
-            guard let self, let value else { return }
-            let output = Output(from: value, sensitivity: self.input.sensitivity)
-            completion(output)
-            self.subject.send(output)
-        }
-    }
-
-    public func stop() {
-        motionManager.stopAccelerometerUpdates()
+extension Accelerometer {
+    private func output(from value: CMAccelerometerData) -> Output {
+        Output(from: value, sensitivity: input.sensitivity)
     }
 }

@@ -1,6 +1,6 @@
 //
 //  MotionManager.swift
-//  
+//
 //
 //  Created by Kristof Kalai on 2023. 03. 12..
 //
@@ -19,17 +19,6 @@ public final class MotionManager<T: Motion> {
 }
 
 extension MotionManager: Motion {
-    public func start(input: T.Input? = nil, completion: @escaping (_ output: T.Output) -> Void) {
-        motion.start(input: input) { [weak self] in
-            self?.subject.send($0)
-            completion($0)
-        }
-    }
-
-    public func stop() {
-        motion.stop()
-    }
-
     public var isActive: Bool {
         motion.isActive
     }
@@ -40,6 +29,17 @@ extension MotionManager: Motion {
 
     public var lastSample: T.Output? {
         motion.lastSample
+    }
+
+    public func start(input: T.Input? = nil, completion: @escaping (_ output: T.Output) -> Void) {
+        motion.start(input: input) { [weak self] in
+            self?.subject.send($0)
+            completion($0)
+        }
+    }
+
+    public func stop() {
+        motion.stop()
     }
 }
 

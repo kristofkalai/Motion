@@ -1,22 +1,19 @@
 //
 //  Gyroscope.swift
-//  
+//
 //
 //  Created by Kristof Kalai on 2023. 03. 12..
 //
 
 import CoreMotion
 
-public final class Gyroscope: BaseMotion<Gyroscope.GyroscopeInput, Gyroscope.GyroscopeOutput> {
-    public typealias Input = GyroscopeInput
-    public typealias Output = GyroscopeOutput
-
-    public struct GyroscopeInput: MotionInput {
+public final class Gyroscope: BaseMotion<Gyroscope.Input, Gyroscope.Output> {
+    public struct Input: MotionInput {
         public let timeInterval: TimeInterval
         public let operationQueue: OperationQueue
 
-        public init(timeInterval: TimeInterval = Gyroscope.defaultTimeInterval,
-                    operationQueue: OperationQueue = Gyroscope.defaultOperationQueue) {
+        public init(timeInterval: TimeInterval = defaultTimeInterval,
+                    operationQueue: OperationQueue = defaultOperationQueue) {
             self.timeInterval = timeInterval
             self.operationQueue = operationQueue
         }
@@ -26,7 +23,7 @@ public final class Gyroscope: BaseMotion<Gyroscope.GyroscopeInput, Gyroscope.Gyr
         }
     }
 
-    public struct GyroscopeOutput: MotionOutput {
+    public struct Output: MotionOutput {
         public let timestamp: TimeInterval
         public let x: Double // in rad / sec
         public let y: Double // in rad / sec
@@ -43,6 +40,22 @@ public final class Gyroscope: BaseMotion<Gyroscope.GyroscopeInput, Gyroscope.Gyr
             self.init(from: gyroData.rotationRate, timestamp: gyroData.timestamp)
         }
     }
+
+    public override func start(input _input: Input? = nil, completion: @escaping (_ output: Output) -> Void) {
+        super.start(input: _input, completion: completion)
+        motionManager.gyroUpdateInterval = input.timeInterval
+        motionManager.startGyroUpdates(to: input.operationQueue) { [weak self] value, _ in
+            guard let self, let value else { return }
+            let output = output(from: value)
+            completion(output)
+            subject.send(output)
+        }
+    }
+
+    public override func stop() {
+        super.stop()
+        motionManager.stopGyroUpdates()
+    }
 }
 
 extension Gyroscope: Motion {
@@ -55,24 +68,12 @@ extension Gyroscope: Motion {
     }
 
     public var lastSample: Output? {
-        motionManager.gyroData.map { .init(from: $0) }
+        motionManager.gyroData.map(output)
     }
+}
 
-    public func start(input: Input? = nil, completion: @escaping (_ output: Output) -> Void) {
-        if let input {
-            self.input = input
-        }
-        motionManager.gyroUpdateInterval = self.input.timeInterval
-        motionManager.startGyroUpdates(to: self.input.operationQueue) { [weak self] value, _ in
-            guard let value else { return }
-            let output = Output(from: value)
-            completion(output)
-            guard let self else { return }
-            self.subject.send(output)
-        }
-    }
-
-    public func stop() {
-        motionManager.stopGyroUpdates()
+extension Gyroscope {
+    private func output(from value: CMGyroData) -> Output {
+        .init(from: value)
     }
 }
