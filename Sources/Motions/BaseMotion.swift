@@ -5,15 +5,21 @@
 //  Created by Kristof Kalai on 2023. 03. 12..
 //
 
-import Combine
+import Channel
 import CoreMotion
 
 public class BaseMotion<Input: MotionInput, Output> {
-    private(set) var input: Input = .default
-    let subject = PassthroughSubject<Output, Never>()
+    public private(set) var input: Input
     private(set) lazy var motionManager = CMMotionManager()
 
-    public func start(input _input: Input? = nil, completion: @escaping (_ output: Output) -> Void) {
+    public var channel: BaseChannel<Output>?
+
+    init(input: Input = .default, channel: BaseChannel<Output>? = nil) {
+        self.input = input
+        self.channel = channel
+    }
+
+    public func start(input _input: Input?) {
         stop()
         _input.map { input = $0 }
     }

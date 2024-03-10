@@ -5,9 +5,10 @@
 //  Created by Kristof Kalai on 2023. 03. 12..
 //
 
+import Channel
 import Foundation
 
-public protocol Motion {
+public protocol Motion: AnyObject {
     associatedtype Input
     associatedtype Output
 
@@ -15,7 +16,9 @@ public protocol Motion {
     var isActive: Bool { get }
     var lastSample: Output? { get }
 
-    func start(input: Input?, completion: @escaping (_ output: Output) -> Void)
+    var channel: BaseChannel<Output>? { get set }
+
+    func start(input: Input?)
     func stop()
 }
 
@@ -28,7 +31,7 @@ extension Motion {
         .main
     }
 
-    public func start(completion: @escaping (_ output: Output) -> Void) {
-        start(input: nil, completion: completion)
+    public func start() {
+        start(input: nil)
     }
 }

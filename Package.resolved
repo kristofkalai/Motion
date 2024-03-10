@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "channel",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/stateman92/Channel",
+      "state" : {
+        "revision" : "7967e2f2b79085fb2aa1f2b091cb9f9471ebcea0",
+        "version" : "0.0.1"
+      }
+    }
+  ],
+  "version" : 2
+}

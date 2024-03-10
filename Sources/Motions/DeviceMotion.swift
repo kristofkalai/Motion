@@ -59,14 +59,12 @@ public final class DeviceMotion: BaseMotion<DeviceMotion.Input, DeviceMotion.Out
         }
     }
 
-    public override func start(input _input: Input? = nil, completion: @escaping (_ output: Output) -> Void) {
-        super.start(input: _input, completion: completion)
+    public override func start(input _input: Input?) {
+        super.start(input: _input)
         motionManager.deviceMotionUpdateInterval = input.timeInterval
         motionManager.startDeviceMotionUpdates(using: input.attitudeReferenceFrame, to: input.operationQueue) { [weak self] value, _ in
             guard let self, let value else { return }
-            let output = output(from: value)
-            completion(output)
-            subject.send(output)
+            channel?.send(value: output(from: value))
         }
     }
 

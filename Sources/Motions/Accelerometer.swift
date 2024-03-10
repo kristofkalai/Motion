@@ -48,14 +48,12 @@ public final class Accelerometer: BaseMotion<Accelerometer.Input, Accelerometer.
         }
     }
 
-    public override func start(input: Input? = nil, completion: @escaping (_ output: Output) -> Void) {
-        super.start(input: input, completion: completion)
+    public override func start(input _input: Input?) {
+        super.start(input: input)
         motionManager.accelerometerUpdateInterval = self.input.timeInterval
         motionManager.startAccelerometerUpdates(to: self.input.operationQueue) { [weak self] value, _ in
             guard let self, let value else { return }
-            let output = output(from: value)
-            completion(output)
-            subject.send(output)
+            channel?.send(value: output(from: value))
         }
     }
 
